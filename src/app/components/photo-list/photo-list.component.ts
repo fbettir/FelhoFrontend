@@ -11,36 +11,30 @@ import { FormsModule } from '@angular/forms';
 @Component({
   selector: 'app-photo-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatSnackBarModule,
-    FormsModule,
-  ],
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatSnackBarModule, FormsModule],
   template: `
     <div style="max-width: 900px; margin: 20px auto;">
       <h2>🖼️ Feltöltött képek</h2>
 
       <div style="margin-bottom: 16px;">
-        <label>Rendezés:</label>
-        <select [(ngModel)]="sortBy">
-          <option value="name">Név szerint</option>
-          <option value="uploadDate">Dátum szerint</option>
-        </select>
-        <select [(ngModel)]="sortDirection">
-          <option value="asc">Növekvő</option>
-          <option value="desc">Csökkenő</option>
-        </select>
-      </div>
+  <label>Rendezés:</label>
+  <select [(ngModel)]="sortBy">
+    <option value="name">Név szerint</option>
+    <option value="uploadDate">Dátum szerint</option>
+  </select>
+  <select [(ngModel)]="sortDirection">
+    <option value="asc">Növekvő</option>
+    <option value="desc">Csökkenő</option>
+  </select>
+</div>
 
       <ng-container *ngIf="photos.length > 0; else noPhotos">
-        <mat-card
-          *ngFor="let photo of sortedPhotos"
-          style="margin-bottom: 20px;"
-        >
-          <img [src]="photo.url" alt="kép" />
-
+        <mat-card *ngFor="let photo of sortedPhotos" style="margin-bottom: 20px;">
+          <img
+            [src]="photo.url"
+            alt="kép"
+            style="max-width: 100%; height: auto;"
+          />
           <mat-card-content>
             <p><strong>Név:</strong> {{ photo.name }}</p>
             <p>
@@ -74,14 +68,14 @@ export class PhotoListComponent implements OnInit {
   ) {}
 
   get sortedPhotos(): Photo[] {
-    return this.photos.slice().sort((a, b) => {
-      const field = this.sortBy;
-      const valA = a[field];
-      const valB = b[field];
-      const result = valA < valB ? -1 : valA > valB ? 1 : 0;
-      return this.sortDirection === 'asc' ? result : -result;
-    });
-  }
+  return this.photos.slice().sort((a, b) => {
+    const field = this.sortBy;
+    const valA = a[field];
+    const valB = b[field];
+    const result = valA < valB ? -1 : valA > valB ? 1 : 0;
+    return this.sortDirection === 'asc' ? result : -result;
+  });
+}
 
   ngOnInit(): void {
     this.loadPhotos();
