@@ -22,6 +22,7 @@ import { FormsModule } from '@angular/forms';
     <div style="max-width: 900px; margin: 20px auto;">
       <h2>🖼️ Feltöltött képek</h2>
 
+      
       <div style="margin-bottom: 16px;">
         <label>Rendezés:</label>
         <select [(ngModel)]="sortBy">
