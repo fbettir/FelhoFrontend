@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://felhopicturerepo-czbuh8f6fgazenc0.westeurope-01.azurewebsites.net/api/photos',
+  apiUrl: 'felhopicturepo-czbuh8f6fgazenc0.westeurope-01.azurewebsites.net/api/photos',
   auth: {
     domain: 'muerapp.eu.auth0.com',
     clientId: 'YOUR_CLIENT_ID_HERE',
