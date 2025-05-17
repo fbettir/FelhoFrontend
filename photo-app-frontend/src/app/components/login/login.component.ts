@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { Router } from '@angular/router';
-import { SocialAuthService, GoogleLoginProvider, SocialUser } from 'angularx-social-login';
-import { AuthService } from '../../services/auth.service';
+import { AuthService } from '@auth0/auth0-angular';
 
 @Component({
   selector: 'app-login',
@@ -13,24 +12,33 @@ import { AuthService } from '../../services/auth.service';
   template: `
     <mat-card style="max-width: 400px; margin: 40px auto; text-align: center;">
       <h2>Bejelentkezés</h2>
-      <p>Kérlek, jelentkezz be a Google fiókoddal:</p>
-      <button mat-raised-button color="primary" (click)="signInWithGoogle()">
-        Google bejelentkezés
+      <p>Kérlek, jelentkezz be a fiókoddal:</p>
+      <button *ngIf="!(auth.isAuthenticated$ | async)" (click)="login()">
+        Bejelentkezés
+      </button>
+      <button *ngIf="auth.isAuthenticated$ | async" (click)="logout()">
+        Kijelentkezés
       </button>
     </mat-card>
-  `
+  `,
 })
 export class LoginComponent {
-  constructor(
-    private socialAuth: SocialAuthService,
-    private authService: AuthService,
-    private router: Router
-  ) {}
-
-  signInWithGoogle(): void {
-    this.socialAuth.signIn(GoogleLoginProvider.PROVIDER_ID).then((user: SocialUser) => {
-      this.authService.setUser(user); // tároljuk a felhasználót központilag
-      this.router.navigate(['/']);   // sikeres login után főoldalra vissza
+  constructor(public auth: AuthService, private router: Router) {
+    this.auth.isAuthenticated$.subscribe((isAuthenticated) => {
+      if (isAuthenticated) {
+        this.router.navigate(['/']);
+      }
     });
+  }
+
+  login() {
+    this.auth.loginWithRedirect();
+  }
+  logout() {
+    this.auth.logout({
+  logoutParams: {
+    returnTo: window.location.origin
+  }
+});
   }
 }

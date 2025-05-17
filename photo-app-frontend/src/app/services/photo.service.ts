@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 export interface Photo {
   id: string;
@@ -12,33 +12,31 @@ export interface Photo {
 
 @Injectable({ providedIn: 'root' })
 export class PhotoService {
-  private baseUrl = '/api/photos'; // az Azure backend vagy proxy kiszolgáló címe
+  private baseUrl = `${environment.apiUrl}/photos`;
 
-  constructor(private http: HttpClient, private authService: AuthService) {}
-
-  private get authHeaders(): HttpHeaders {
-    const token = this.authService.token;
-    return new HttpHeaders({
-      Authorization: token ? `Bearer ${token}` : ''
-    });
-  }
+  constructor(private http: HttpClient) {}
 
   getPhotos(): Observable<Photo[]> {
     return this.http.get<Photo[]>(this.baseUrl);
   }
 
-  uploadPhoto(name: string, file: File): Observable<any> {
+  uploadPhoto(name: string, file: File, token: string): Observable<any> {
     const formData = new FormData();
     formData.append('name', name);
     formData.append('file', file);
+
     return this.http.post(this.baseUrl, formData, {
-      headers: this.authHeaders
+      headers: new HttpHeaders({
+        Authorization: `Bearer ${token}`,
+      }),
     });
   }
 
-  deletePhoto(photoId: string): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/${photoId}`, {
-      headers: this.authHeaders
-    });
-  }
+deletePhoto(photoId: string, token: string): Observable<any> {
+  return this.http.delete(`${this.baseUrl}/${photoId}`, {
+    headers: new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+}
 }

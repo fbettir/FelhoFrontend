@@ -1,80 +1,117 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
-import { MatListModule } from '@angular/material/list';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { Photo, PhotoService } from '../../services/photo.service';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { PhotoService, Photo } from '../../services/photo.service';
+import { AuthService } from '@auth0/auth0-angular'; // ✅
+import { firstValueFrom } from 'rxjs';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-photo-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatCardModule,
-    MatListModule,
-    MatSelectModule,
-    MatFormFieldModule,
-    MatIconModule
-  ],
+  imports: [CommonModule, MatCardModule, MatButtonModule, MatSnackBarModule, FormsModule],
   template: `
-    <mat-card style="max-width: 800px; margin: 20px auto;">
-      <h2>📷 Fényképeim</h2>
+    <div style="max-width: 900px; margin: 20px auto;">
+      <h2>🖼️ Feltöltött képek</h2>
 
-      <mat-form-field appearance="fill" style="width: 100%;">
-        <mat-label>Rendezés</mat-label>
-        <mat-select [(value)]="sortBy" (selectionChange)="sortPhotos()">
-          <mat-option value="name">Név szerint</mat-option>
-          <mat-option value="date">Dátum szerint</mat-option>
-        </mat-select>
-      </mat-form-field>
+      <div style="margin-bottom: 16px;">
+  <label>Rendezés:</label>
+  <select [(ngModel)]="sortBy">
+    <option value="name">Név szerint</option>
+    <option value="uploadDate">Dátum szerint</option>
+  </select>
+  <select [(ngModel)]="sortDirection">
+    <option value="asc">Növekvő</option>
+    <option value="desc">Csökkenő</option>
+  </select>
+</div>
 
-      <mat-list>
-        <mat-list-item *ngFor="let photo of sortedPhotos" (click)="selectPhoto(photo)">
-          <mat-icon matListIcon>photo</mat-icon>
-          <div matLine>{{ photo.name }}</div>
-          <div matLine class="mat-caption">{{ photo.uploadDate | date:'yyyy.MM.dd HH:mm' }}</div>
-        </mat-list-item>
-      </mat-list>
-    </mat-card>
+      <ng-container *ngIf="photos.length > 0; else noPhotos">
+        <mat-card *ngFor="let photo of sortedPhotos" style="margin-bottom: 20px;">
+          <img
+            [src]="photo.url"
+            alt="kép"
+            style="max-width: 100%; height: auto;"
+          />
+          <mat-card-content>
+            <p><strong>Név:</strong> {{ photo.name }}</p>
+            <p>
+              <strong>Feltöltve:</strong>
+              {{ photo.uploadDate | date : 'yyyy.MM.dd HH:mm' }}
+            </p>
+          </mat-card-content>
+          <mat-card-actions *ngIf="authService.isAuthenticated$ | async">
+            <button mat-button color="warn" (click)="deletePhoto(photo)">
+              Törlés
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </ng-container>
 
-    <mat-card *ngIf="selectedPhoto" style="max-width: 800px; margin: 20px auto; text-align: center;">
-      <h3>{{ selectedPhoto.name }}</h3>
-      <img [src]="selectedPhoto.url" alt="photo" style="max-width: 100%;">
-    </mat-card>
-  `
+      <ng-template #noPhotos>
+        <p>Nincs feltöltött kép.</p>
+      </ng-template>
+    </div>
+  `,
 })
 export class PhotoListComponent implements OnInit {
   photos: Photo[] = [];
-  sortedPhotos: Photo[] = [];
-  selectedPhoto: Photo | null = null;
-  sortBy: 'name' | 'date' = 'name';
+  sortBy: 'name' | 'uploadDate' = 'uploadDate';
+  sortDirection: 'asc' | 'desc' = 'desc';
 
-  constructor(private photoService: PhotoService) {}
+  constructor(
+    public authService: AuthService,
+    private photoService: PhotoService,
+    private snackBar: MatSnackBar
+  ) {}
+
+  get sortedPhotos(): Photo[] {
+  return this.photos.slice().sort((a, b) => {
+    const field = this.sortBy;
+    const valA = a[field];
+    const valB = b[field];
+    const result = valA < valB ? -1 : valA > valB ? 1 : 0;
+    return this.sortDirection === 'asc' ? result : -result;
+  });
+}
 
   ngOnInit(): void {
     this.loadPhotos();
   }
 
   loadPhotos(): void {
-    this.photoService.getPhotos().subscribe(data => {
-      this.photos = data;
-      this.sortPhotos();
+    this.photoService.getPhotos().subscribe({
+      next: (data) => (this.photos = data),
+      error: (err) => {
+        console.error(err);
+        this.snackBar.open('Nem sikerült betölteni a képeket.', 'OK', {
+          duration: 3000,
+        });
+      },
     });
   }
 
-  sortPhotos(): void {
-    if (this.sortBy === 'name') {
-      this.sortedPhotos = [...this.photos].sort((a, b) => a.name.localeCompare(b.name));
-    } else {
-      this.sortedPhotos = [...this.photos].sort((a, b) =>
-        new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
-      );
-    }
-  }
+  async deletePhoto(photo: Photo): Promise<void> {
+    if (!confirm(`Biztosan törölni szeretnéd a(z) "${photo.name}" képet?`))
+      return;
 
-  selectPhoto(photo: Photo): void {
-    this.selectedPhoto = photo;
+    try {
+      const token = await firstValueFrom(
+        this.authService.getAccessTokenSilently()
+      );
+      const photoId = photo.id;
+
+      await firstValueFrom(this.photoService.deletePhoto(photoId, token));
+
+      this.snackBar.open('Kép törölve.', 'OK', { duration: 3000 });
+      this.loadPhotos();
+    } catch (err) {
+      console.error(err);
+      this.snackBar.open('Hiba történt a törlés során.', 'OK', {
+        duration: 3000,
+      });
+    }
   }
 }
