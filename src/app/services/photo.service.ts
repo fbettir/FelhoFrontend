@@ -4,10 +4,9 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface Photo {
-  id: string;
-  name: string;
-  uploadDate: string;
+  name: string; // blob neve = fájlnév
   url: string;
+  uploadDate: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -32,11 +31,12 @@ export class PhotoService {
     });
   }
 
-deletePhoto(photoId: string, token: string): Observable<any> {
-  return this.http.delete(`${this.baseUrl}/${photoId}`, {
+deletePhoto(photoName: string, token: string): Observable<any> {
+  return this.http.delete(`${this.baseUrl}/${photoName}`, {
     headers: new HttpHeaders({
       Authorization: `Bearer ${token}`,
     }),
   });
 }
+
 }
